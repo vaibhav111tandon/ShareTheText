@@ -1,5 +1,12 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const admin = require('firebase-admin');
+
+admin.initializeApp({
+    credential: admin.credential.applicationDefault()  
+});
+  
+const db = admin.firestore();
 
 const app = express();
 
@@ -17,11 +24,18 @@ app.get('/:stub/:text', async (req, res) => {
     const text = await req.params.text;
 
     if(stub.trim() != '' && text.trim() != ''){
-        res.send({
+        
+        await db.collection('stubCollection').doc('stubs').set({
             stub,
             text
-        });
-    }
-    
+        }).then((e) =>{
+            if(e != null)
+                res.send({'Error': `${e}`});
+            else
+                res.send({stub, text})
+        })
 
+    }
+
+    
 });
