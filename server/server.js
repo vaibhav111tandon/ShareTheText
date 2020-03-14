@@ -1,9 +1,10 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
+const serviceAccount = require('./serviceAccountKey.json');
 
 admin.initializeApp({
-    credential: admin.credential.applicationDefault()  
+    credential: admin.credential.cert(serviceAccount)  
 });
   
 const db = admin.firestore();
@@ -18,24 +19,47 @@ app.listen(PORT, () => {
     console.log("Listening on port : ", PORT)
 });
 
-app.get('/:stub/:text', async (req, res) => {
+app.get('store/:stub/:text', async (req, res) => {
     
-    const stub = await req.params.stub;
-    const text = await req.params.text;
+    let stub = await req.params.stub;
+    let text = await req.params.text;
 
     if(stub.trim() != '' && text.trim() != ''){
         
-        await db.collection('stubCollection').doc('stubs').set({
-            stub,
+        await db.collection('stubCollection').doc(stub).set({
             text
-        }).then((e) =>{
-            if(e != null)
-                res.send({'Error': `${e}`});
-            else
-                res.send({stub, text})
-        })
+        }).then(() => {
+            res.send({
+                stub,text
+            });
+        }).catch((e) => {
+            res.send({
+                'Error':`${e.message}` 
+            })
+        });
 
     }
 
     
+});
+
+app.get('/:stub', async (req, res) => {
+
+    let stub = req.params.stub;
+
+    await db.collection('stubCollection')
+            .doc(stub)
+            .get()
+            .then((doc) => {
+                if(!doc.exists){
+                    console.log("Document does not exist");
+                }else{
+                    let data = doc.data();
+                    res.send({data});
+                }
+            })
+            .catch((error) => {
+                console.log("Error : ", error)
+            })
+
 });
